@@ -7,6 +7,23 @@ Func UAI_Filter_IsGadget($a_i_AgentID)
 	Return True
 EndFunc
 
+Func UAI_Filter_IsNPC($a_i_AgentID)
+	Return UAI_GetAgentInfoByID($a_i_AgentID, $GC_UAI_AGENT_IsNPC)
+EndFunc
+
+Func UAI_Filter_IsLivingNPC($a_i_AgentID)
+	If Not UAI_GetAgentInfoByID($a_i_AgentID, $GC_UAI_AGENT_IsNPC) Then Return False
+	If Not UAI_GetAgentInfoByID($a_i_AgentID, $GC_UAI_AGENT_IsLivingType) Then Return False
+	If UAI_GetAgentInfoByID($a_i_AgentID, $GC_UAI_AGENT_HP) <= 0 Then Return False
+	If UAI_GetAgentInfoByID($a_i_AgentID, $GC_UAI_AGENT_IsDead) Then Return False
+	Return True
+EndFunc
+
+Func UAI_Filter_IsLivingNPCOrGadget($a_i_AgentID)
+	If UAI_Filter_IsLivingNPC($a_i_AgentID) Then Return True
+	Return UAI_Filter_IsGadget($a_i_AgentID)
+EndFunc
+
 Func UAI_Filter_IsLastStrikeIsLead($a_i_AgentID)
 	If UAI_GetAgentInfoByID($a_i_AgentID, $GC_UAI_AGENT_LastStrike) <> 1 Then Return False
 	Return True
