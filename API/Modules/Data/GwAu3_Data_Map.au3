@@ -7,6 +7,11 @@ Func Map_GetInstanceUpTime()
     Return $l_av_Timer[1]
 EndFunc   ;==>GetInstanceUpTime
 
+;~ Returns the internal time the player has been in the current instance, in seconds.
+Func Map_GetTimeOnMap()
+    Return Memory_Read($g_p_TimeOnMap, 'float')
+EndFunc
+
 Func Map_GetRegion()
     Return Memory_Read($g_p_Region)
 EndFunc
@@ -204,7 +209,7 @@ Func Map_GetCharacterInfo($a_s_Info = "")
         Case "Language"
             Return Memory_Read($l_p_Ptr + 0x224, "long")
         Case "Region"
-            Return Memory_Read($g_p_Region)
+            Return Utils_MakeInt32(Memory_Read($g_p_Region))
         Case "ObserveMapID"
             Return Memory_Read($l_p_Ptr + 0x228, "long")
         Case "CurrentMapID"
@@ -229,6 +234,46 @@ EndFunc
 Func Map_GetMapID()
     Return Map_GetCharacterInfo("MapID")
 EndFunc   ;==>GetMapID
+
+;~ Description: Returns True if current MapID is wanted MapID, including event MapIDs
+Func Map_IsMap($a_i_MapID)
+    Return Map_GetNormalizedMapID() = $a_i_MapID
+EndFunc
+
+;~ Description: Returns MapID or normalized MapID in case of an event MapID
+Func Map_GetNormalizedMapID()
+    Local $l_i_MapID = Map_GetMapID()
+
+    If $l_i_MapID < 808 Or $l_i_MapID > 821 Then Return $l_i_MapID
+
+    Switch $l_i_MapID
+        Case $GC_I_MAP_ID_LIONS_ARCH_HALLOWEEN, $GC_I_MAP_ID_LIONS_ARCH_WINTERSDAY, $GC_I_MAP_ID_LIONS_ARCH_CANTHAN_NEW_YEAR
+            Return $GC_I_MAP_ID_LIONS_ARCH
+
+        Case $GC_I_MAP_ID_DROKNARS_FORGE_HALLOWEEN, $GC_I_MAP_ID_DROKNARS_FORGE_WINTERSDAY
+            Return  $GC_I_MAP_ID_DROKNARS_FORGE
+
+        Case $GC_I_MAP_ID_TOMB_OF_THE_PRIMEVAL_KINGS_HALLOWEEN
+            Return $GC_I_MAP_ID_TOMB_OF_THE_PRIMEVAL_KINGS
+
+        Case $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_HALLOWEEN, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_WINTERSDAY, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_CANTHAN_NEW_YEAR
+            Return $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN
+
+        Case $GC_I_MAP_ID_EYE_OF_THE_NORTH_OUTPOST_WINTERSDAY
+            Return $GC_I_MAP_ID_EYE_OF_THE_NORTH_OUTPOST
+
+        Case $GC_I_MAP_ID_ASCALON_CITY_WINTERSDAY
+            Return $GC_I_MAP_ID_ASCALON_CITY
+
+        Case $GC_I_MAP_ID_SHING_JEA_MONASTERY_CANTHAN_NEW_YEAR, $GC_I_MAP_ID_SHING_JEA_MONASTERY_DRAGON_FESTIVAL
+            Return $GC_I_MAP_ID_SHING_JEA_MONASTERY
+
+        Case $GC_I_MAP_ID_KAINENG_CENTER_CANTHAN_NEW_YEAR
+            Return $GC_I_MAP_ID_KAINENG_CENTER
+    EndSwitch
+
+    Return SetError(1, 0, 0)
+EndFunc
 
 #Region Area Related
 Func Map_GetAreaPtr($aMapID = 0)
@@ -384,10 +429,10 @@ Func Map_IsOutpost($a_i_MapID)
 	If BitAND($l_i_Flags, 0x80000000) = 0x80000000 Then Return False
 
 	; Check RegionType - must be one of the valid outpost types
-	; 5 = Mission Outpost, 6 = Cooperative Mission, 7 = Competitive Mission
+	; 1 = Arena, 5 = Mission Outpost, 6 = Cooperative Mission, 7 = Competitive Mission
 	; 8 = Elite Mission, 9 = Challenge, 10 = Outpost, 13 = City
 	Switch $l_i_RegionType
-		Case 5, 6, 7, 8, 9, 10, 13, 19
+		Case 1, 5, 6, 7, 8, 9, 10, 13, 19
 			Return True
 		Case Else
 			Return False

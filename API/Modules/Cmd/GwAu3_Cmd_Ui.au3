@@ -18,6 +18,12 @@ Func Ui_UpdateQuest($a_i_QuestID)
     Core_Enqueue($g_p_Dialog, 8)
 EndFunc   ;==>Ui_UpdateQuest
 
+;~ Description: Sends dialog ID about a Quest.
+Func Ui_AboutQuest($a_i_QuestID)
+    DllStructSetData($g_d_Dialog, 2, '0x008' & Hex($a_i_QuestID, 3) & '03')
+    Core_Enqueue($g_p_Dialog, 8)
+EndFunc   ;==>Ui_UpdateQuest
+
 ;~ Description: Sends dialog ID for Quest Reward.
 Func Ui_RewardQuest($a_i_QuestID)
     DllStructSetData($g_d_Dialog, 2, '0x008' & Hex($a_i_QuestID, 3) & '07')
@@ -159,13 +165,21 @@ EndFunc   ;==>Ui_EnterChallenge
 
 ;~ Description: Initiates map travel.
 Func Ui_MoveMap($a_i_MapID, $a_i_Region, $a_i_Language, $a_i_District)
-    DllStructSetData($g_d_MoveMap, 2, 0x1000017F)
+    DllStructSetData($g_d_MoveMap, 2, $GC_I_UIMSG_TRAVEL)
     DllStructSetData($g_d_MoveMap, 3, $a_i_MapID)
     DllStructSetData($g_d_MoveMap, 4, $a_i_Region)
     DllStructSetData($g_d_MoveMap, 5, $a_i_Language)
     DllStructSetData($g_d_MoveMap, 6, $a_i_District)
     Core_Enqueue($g_p_MoveMap, 24)
 EndFunc   ;==>Ui_MoveMap
+
+;~ Description: Equips an item to an agent.
+Func Ui_EquipItem($a_v_Item, $a_v_Agent = Agent_GetAgentPtr())
+    DllStructSetData($g_d_EquipItem, 2, $GC_I_UIMSG_EQUIP_ITEM)
+    DllStructSetData($g_d_EquipItem, 3, Item_ItemID($a_v_Item))
+    DllStructSetData($g_d_EquipItem, 4, Agent_ConvertID($a_v_Agent))
+    Core_Enqueue($g_p_EquipItem, 16)
+EndFunc   ;==>UIMsg_EquipItem
 
 ;~ Description: Enable graphics rendering.
 Func Ui_EnableRendering()
@@ -217,3 +231,8 @@ Func Ui_PurgeHook_($a_i_Time = 10000)
     Sleep($a_i_Time)
     Ui_ToggleRendering_()
 EndFunc ;==PurgeHook_
+
+Func Ui_ActiveQuest($a_i_QuestID)
+    DllStructSetData($g_d_ActiveQuest, 2, $a_i_QuestID)
+    Core_Enqueue($g_p_ActiveQuest, 8)
+EndFunc

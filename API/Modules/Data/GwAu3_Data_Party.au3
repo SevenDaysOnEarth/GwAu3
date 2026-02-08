@@ -264,7 +264,7 @@ EndFunc
 #EndRegion  Party Profession Related
 
 #Region Pet Related
-Func Party_GetPetInfo($a_i_PetNumber = 0, $a_s_Info = "")
+Func Party_GetPetInfo($a_i_PetNumber = 1, $a_s_Info = "")
     Local $l_p_PetPtr = World_GetWorldInfo("PetInfoArray")
     Local $l_i_PetSize = World_GetWorldInfo("PetInfoArraySize")
     $a_i_PetNumber = $a_i_PetNumber - 1
@@ -384,7 +384,7 @@ Func Party_GetHeroInfo($a_i_HeroNumber = 1, $a_s_Info = "")
 
     Local $l_i_ReadHeroID, $l_p_HeroPtr
     For $l_i_Idx = 0 To $l_i_Size - 1
-        $l_p_HeroPtr = $l_p_Ptr + (0x78 * $l_i_Idx)
+        $l_p_HeroPtr = $l_p_Ptr + (0x9C * $l_i_Idx)
         $l_i_ReadHeroID = Memory_Read($l_p_HeroPtr + 0x4, "dword")
         If $l_p_HeroPtr <> 0 And $l_i_ReadHeroID = $l_i_HeroID Then ExitLoop
     Next
@@ -405,10 +405,13 @@ Func Party_GetHeroInfo($a_i_HeroNumber = 1, $a_s_Info = "")
             Return Memory_Read($l_p_HeroPtr + 0x14, "dword")
         Case "ModelFileID"
             Return Memory_Read($l_p_HeroPtr + 0x18, "dword")
-        Case "Name"
-;~             Local $l_p_Name = Memory_Read($l_p_HeroPtr + 0x50, "ptr")
-;~             Return Memory_Read($l_p_Name, "char[20]")
-            Return Memory_Read($l_p_HeroPtr + 0x50, "wchar[24]")
+		Case "Name"
+			Local $lHeroID = Memory_Read($l_p_HeroPtr, "dword")
+			If $lHeroID >= 28 And $lHeroID <= 35 Then
+				Local $l_s_Name = Memory_Read($l_p_HeroPtr + 0x74, "wchar[20]")
+				If $l_s_Name <> "" Then Return $l_s_Name
+			EndIf
+			Return $GC_AM2_HERO_DATA[$lHeroID][1]
     EndSwitch
 
     Return 0

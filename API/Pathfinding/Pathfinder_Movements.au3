@@ -26,23 +26,26 @@ Global $g_iPathfinder_StuckDistance = 50            ; If moved less than this, c
 ; $aFinisherMode = Finisher mode for UAI_Fight
 ; Returns: True if destination reached, False if interrupted
 Func Pathfinder_MoveTo($aDestX, $aDestY, $aObstacles = 0, $aAggroRange = 1320, $aFightRangeOut = 3500, $aFinisherMode = 0, $aCallFunc = "")
-	If Agent_GetAgentInfo(-2, "IsDead") Then Return
     Local $lMyOldMap = Map_GetMapID()
     Local $lMapLoadingOld = Map_GetInstanceInfo("Type")
     Local $lMyX = Agent_GetAgentInfo(-2, "X")
     Local $lMyY = Agent_GetAgentInfo(-2, "Y")
 	Local $lLayer = Agent_GetAgentInfo(-2, "Plane")
+	Local $lNeedPathUpdate = False
 
 	; Map was not full loaded
-	If $lMyX = 0 Or $lMyY = 0 Or $lMyOldMap = 0 Or $lMapLoadingOld = $GC_I_MAP_TYPE_LOADING Or Other_GetPing() = 0 Then
+	If $lMyX = 0 Or $lMyY = 0 Or $lMyOldMap = 0 Or $lMapLoadingOld = $GC_I_MAP_TYPE_LOADING Then
 		Do
 			Sleep(16)
-		Until Map_GetMapID() <> 0 And (Agent_GetAgentInfo(-2, "X") <> 0 Or Agent_GetAgentInfo(-2, "Y") <> 0) And Other_GetPing() <> 0
+		Until Map_GetMapID() <> 0 And (Agent_GetAgentInfo(-2, "X") <> 0 Or Agent_GetAgentInfo(-2, "Y") <> 0)
 
-		$lMyX = Agent_GetAgentInfo(-2, "X")
-		$lMyY = Agent_GetAgentInfo(-2, "Y")
+		Other_WaitPingStabilized(1500)
+
 		$lMyOldMap = Map_GetMapID()
 		$lMapLoadingOld = Map_GetInstanceInfo("Type")
+		$lMyX = Agent_GetAgentInfo(-2, "X")
+		$lMyY = Agent_GetAgentInfo(-2, "Y")
+		$lLayer = Agent_GetAgentInfo(-2, "Plane")
 	EndIf
 
 	; Initialize DLL if not already loaded
@@ -94,7 +97,7 @@ Func Pathfinder_MoveTo($aDestX, $aDestY, $aObstacles = 0, $aAggroRange = 1320, $
         ; Check for map change
         If (Map_GetMapID() <> $lMyOldMap And Not Game_GetGameInfo("IsCinematic")) Or Map_GetInstanceInfo("Type") <> $lMapLoadingOld Then
             Pathfinder_Shutdown()
-            Return True
+            Return False
         EndIf
 
 		; Need to return to outpost
@@ -104,13 +107,15 @@ Func Pathfinder_MoveTo($aDestX, $aDestY, $aObstacles = 0, $aAggroRange = 1320, $
         EndIf
 
 		; wait until rez
-		If Agent_GetAgentInfo(-2, "IsDead") Then ContinueLoop
+		If Agent_GetAgentInfo(-2, "IsDead") Then
+			$lNeedPathUpdate = True
+			ContinueLoop
+		EndIf
 
         $lMyX = Agent_GetAgentInfo(-2, "X")
         $lMyY = Agent_GetAgentInfo(-2, "Y")
 
         ; Update obstacles (dynamic mode only)
-        Local $lNeedPathUpdate = False
         If $lIsDynamicObstacles And TimerDiff($lLastObstacleUpdate) > $g_iPathfinder_ObstacleUpdateInterval Then
             Local $lNewObstacles = Call($aObstacles)
             $lLastObstacleUpdate = TimerInit()
@@ -127,12 +132,12 @@ Func Pathfinder_MoveTo($aDestX, $aDestY, $aObstacles = 0, $aAggroRange = 1320, $
             Local $lMovedDistance = _Pathfinder_Distance($lMyX, $lMyY, $lLastStuckCheckX, $lLastStuckCheckY)
             If $lMovedDistance < $g_iPathfinder_StuckDistance Then
                 $lStuckCount += 1
-                $lNeedPathUpdate = True
                 If $lStuckCount >= 3 Then
                     Local $lRandomAngle = Random(0, 6.28)
                     Map_MoveLayer($lMyX + Cos($lRandomAngle) * 500, $lMyY + Sin($lRandomAngle) * 500, $lLayer)
                     Sleep(750)
                     $lStuckCount = 0
+					$lNeedPathUpdate = True
                 EndIf
             Else
                 $lStuckCount = 0
@@ -155,6 +160,7 @@ Func Pathfinder_MoveTo($aDestX, $aDestY, $aObstacles = 0, $aAggroRange = 1320, $
                 $g_iPathfinder_CurrentPathIndex = 0
             EndIf
             $g_hPathfinder_LastPathUpdateTime = TimerInit()
+			$lNeedPathUpdate = False
         EndIf
 
         ; Move to current waypoint
@@ -187,12 +193,12 @@ Func Pathfinder_MoveTo($aDestX, $aDestY, $aObstacles = 0, $aAggroRange = 1320, $
 			UAI_Fight($lMyX, $lMyY, $aAggroRange, $aFightRangeOut, $aFinisherMode)
 
 			; Wait heroes if they are too far
-			If _Pathfinder_ShouldWaitForParty(2000, 1400) Then
+			If _Pathfinder_ShouldWaitForParty(2000, 1320) Then
 				Local $lWaitTimer = TimerInit()
 				Do
 					Agent_CancelAction()
 					Sleep(250)
-				Until _Pathfinder_PartyWithinRange(1400) Or TimerDiff($lWaitTimer) > 30000
+				Until _Pathfinder_PartyWithinRange(1320) Or TimerDiff($lWaitTimer) > 30000
 			EndIf
 
 			; Wait for resurrection if needed
@@ -205,20 +211,7 @@ Func Pathfinder_MoveTo($aDestX, $aDestY, $aObstacles = 0, $aAggroRange = 1320, $
 
 		If $aCallFunc <> "" Then Call($aCallFunc)
 
-		If Game_GetGameInfo("IsCinematic") Then
-			Local $lWaitTimer = TimerInit()
-			Do
-				Sleep(250)
-				Cinematic_SkipCinematic()
-			Until Not Game_GetGameInfo("IsCinematic") Or TimerDiff($lWaitTimer) > 120000
-			Sleep(250)
-			Local $lWaitPing = TimerInit()
-			If Other_GetPing() = 0 Then
-				Do
-					Sleep(64)
-				Until Other_GetPing() <> 0 Or TimerDiff($lWaitPing) > 30000
-			EndIf
-		EndIf
+		If Game_GetGameInfo("IsCinematic") Then Other_WaitPingStabilized(2000)
 
     Until Agent_GetDistanceToXY($aDestX, $aDestY) < 125
 
@@ -499,7 +492,7 @@ Func _Pathfinder_ShouldWaitForParty($fMaxDistance = 1800, $fResumeDistance = 140
 		Local $fX = $aFlagAll[0]
 		Local $fY = $aFlagAll[1]
 		; Check if values are finite and not zero (meaning flag is actually placed)
-		If _IsFinite($fX) And _IsFinite($fY) Then Return True
+		If _IsFinite($fX) And _IsFinite($fY) Then Return False
 	EndIf
 
     ; Get party size (players + heroes + henchmen)

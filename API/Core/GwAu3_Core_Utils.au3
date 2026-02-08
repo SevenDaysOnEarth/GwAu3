@@ -50,11 +50,12 @@ Func Utils_UnsignedCompare($a_i_A, $a_i_B)
     Return ($a_i_A > $a_i_B And $a_i_A - $a_i_B < 0x80000000) Or ($a_i_B > $a_i_A And $a_i_B - $a_i_A > 0x80000000) ? 1 : -1
 EndFunc
 
-Func Utils_MakeInt32($value)
-    If BitAND($value, 0x80000000) Then
-        Return BitOR($value, 0xFFFFFFFF00000000)
+Func Utils_MakeInt32($a_i_Value)
+    Local $l_i_Val = BitAND($a_i_Value, 0xFFFFFFFF)
+    If BitAND($l_i_Val, 0x80000000) Then
+        Return BitOR($l_i_Val, 0xFFFFFFFF00000000)
     Else
-        Return BitAND($value, 0xFFFFFFFF)
+        Return $l_i_Val
     EndIf
 EndFunc
 
@@ -288,3 +289,211 @@ Func Utils_Array_ToAutoItArray($a_p_Array, $a_s_Type = "ptr", $a_i_ElementSize =
 
     Return $l_a_Result
 EndFunc
+
+; ============================================================================
+; Internal helper - Read a boolean from a bitfield array
+; ============================================================================
+Func Utils_Array_BoolAt($a_p_Array, $a_i_ArraySize, $a_i_Index)
+    If $a_p_Array = 0 Then Return False
+
+    Local $l_i_RealIndex = Floor($a_i_Index / 32)
+    If $l_i_RealIndex >= $a_i_ArraySize Then Return False
+
+    Local $l_i_Shift = Mod($a_i_Index, 32)
+    Local $l_i_Flag = BitShift(1, -$l_i_Shift)  ; 1 << shift
+
+    Local $l_i_Value = Memory_Read($a_p_Array + ($l_i_RealIndex * 4), "dword")
+
+    Return BitAND($l_i_Value, $l_i_Flag) <> 0
+EndFunc
+
+#Region EncString Decoding
+; Converts a uint32 string ID to an encoded wchar string
+; This is the inverse of Utils_DecodeEncString
+; @param $a_i_Value - The uint32 string ID to convert
+; @return Encoded wchar string or empty string on failure
+Func Utils_UInt32ToEncStr($a_i_Value)
+    If $a_i_Value = 0 Then Return ""
+
+    ; Calculate number of wchars needed
+    Local $l_i_CaseRequired = Ceiling($a_i_Value / $ENCSTR_WORD_VALUE_RANGE)
+    If $l_i_CaseRequired = 0 Then $l_i_CaseRequired = 1
+
+    ; Build the encoded string from end to start
+    Local $l_a_Chars[$l_i_CaseRequired]
+    Local $l_i_Remaining = $a_i_Value
+
+    For $i = $l_i_CaseRequired - 1 To 0 Step -1
+        $l_a_Chars[$i] = $ENCSTR_WORD_VALUE_BASE + Mod($l_i_Remaining, $ENCSTR_WORD_VALUE_RANGE)
+        $l_i_Remaining = Floor($l_i_Remaining / $ENCSTR_WORD_VALUE_RANGE)
+
+        ; Set continuation bit for all except the last char
+        If $i <> $l_i_CaseRequired - 1 Then
+            $l_a_Chars[$i] = BitOR($l_a_Chars[$i], $ENCSTR_WORD_BIT_MORE)
+        EndIf
+    Next
+
+    ; Convert to wchar string
+    Local $l_s_Result = ""
+    For $i = 0 To $l_i_CaseRequired - 1
+        $l_s_Result &= ChrW($l_a_Chars[$i])
+    Next
+
+    Return $l_s_Result
+EndFunc
+
+; Decodes a string ID to readable text using GW's internal decoder
+; @param $a_i_StringID - The uint32 string ID to decode
+; @param $a_i_Timeout - Maximum time to wait for decode (ms), default 1000
+; @return Decoded string or empty string on failure
+Func Utils_DecodeStringID($a_i_StringID, $a_i_Timeout = 1000)
+    If $a_i_StringID = 0 Then Return ""
+
+    ; Convert string ID to encoded string
+    Local $l_s_EncStr = Utils_UInt32ToEncStr($a_i_StringID)
+    If $l_s_EncStr = "" Then Return ""
+
+    ; Write encoded string to command struct
+    DllStructSetData($g_d_DecodeEncString, 2, $l_s_EncStr)
+
+    ; Reset ready flag before sending command
+    Memory_Write($g_p_DecodeReady, 0, "dword")
+
+    ; Enqueue the decode command
+    Core_Enqueue($g_p_DecodeEncString, DllStructGetSize($g_d_DecodeEncString))
+
+    ; Wait for decode to complete
+    Local $l_i_StartTime = TimerInit()
+    While TimerDiff($l_i_StartTime) < $a_i_Timeout
+        If Memory_Read($g_p_DecodeReady, "dword") = 1 Then
+            ; Read the decoded string
+            Local $l_s_Decoded = Memory_Read($g_p_DecodeOutputPtr, "wchar[1024]")
+            Return $l_s_Decoded
+        EndIf
+        Sleep(16)
+    WEnd
+
+    ; Timeout
+    Return ""
+EndFunc
+
+; Decodes a string ID with argument references for skill descriptions
+; This allows the decoder to output Chr(991), Chr(992), Chr(993) at placeholder positions
+; which can then be replaced with actual scale/duration values
+; @param $a_i_StringID - The uint32 string ID to decode
+; @param $a_i_Timeout - Maximum time to wait for decode (ms), default 1000
+; @return Decoded string with Chr(991)/Chr(992)/Chr(993) at placeholder positions
+Func Utils_SkillDecodeStringID($a_i_StringID, $a_i_Timeout = 1000)
+    If $a_i_StringID = 0 Then Return ""
+
+    ; First, get the encoded string ID using the standard encoding
+    Local $l_s_EncStr = Utils_UInt32ToEncStr($a_i_StringID)
+    If $l_s_EncStr = "" Then Return ""
+
+    ; Scale argument (placeholder 991)
+    $l_s_EncStr &= ChrW(0x10A)  ; Argument type for scale
+    $l_s_EncStr &= ChrW(0x104)  ; Argument format prefix
+    $l_s_EncStr &= ChrW(0x101)  ; Argument format prefix
+    $l_s_EncStr &= ChrW(0x100 + 991)  ; Value that will be output: 0x4DF = 991 as placeholder
+    $l_s_EncStr &= ChrW(0x01)  ; End of argument
+
+    ; BonusScale argument (placeholder 992)
+    $l_s_EncStr &= ChrW(0x10B)  ; Argument type for bonusScale
+    $l_s_EncStr &= ChrW(0x104)
+    $l_s_EncStr &= ChrW(0x101)
+    $l_s_EncStr &= ChrW(0x100 + 992)  ; 0x4E0 = 992 as placeholder
+    $l_s_EncStr &= ChrW(0x01)
+
+    ; Duration argument (placeholder 993)
+    $l_s_EncStr &= ChrW(0x10C)  ; Argument type for duration
+    $l_s_EncStr &= ChrW(0x104)
+    $l_s_EncStr &= ChrW(0x101)
+    $l_s_EncStr &= ChrW(0x100 + 993)  ; 0x4E1 = 993 as placeholder
+    $l_s_EncStr &= ChrW(0x01)
+
+    ; Write encoded string to command struct
+    DllStructSetData($g_d_DecodeEncString, 2, $l_s_EncStr)
+
+    ; Reset ready flag before sending command
+    Memory_Write($g_p_DecodeReady, 0, "dword")
+
+    ; Enqueue the decode command
+    Core_Enqueue($g_p_DecodeEncString, DllStructGetSize($g_d_DecodeEncString))
+
+    ; Wait for decode to complete
+    Local $l_i_StartTime = TimerInit()
+    While TimerDiff($l_i_StartTime) < $a_i_Timeout
+        If Memory_Read($g_p_DecodeReady, "dword") = 1 Then
+            ; Read the decoded string
+            Local $l_s_Decoded = Memory_Read($g_p_DecodeOutputPtr, "wchar[1024]")
+            Return $l_s_Decoded
+        EndIf
+        Sleep(16)
+    WEnd
+
+    ; Timeout
+    Return ""
+EndFunc
+
+; Decodes a Guild Wars Encoded String to extract the string ID
+; EncStrings use variable-length encoding with continuation bits
+Func Utils_DecodeEncString($a_p_Ptr)
+    If $a_p_Ptr = 0 Then Return 0
+
+    Local $l_i_Val = 0
+    Local $l_i_Offset = 0
+    Local $l_i_MaxIter = 10  ; Safety limit
+
+    For $i = 1 To $l_i_MaxIter
+        Local $l_i_Char = Memory_Read($a_p_Ptr + $l_i_Offset, "word")
+
+        ; Check if this is a valid encoded word (>= 0x100)
+        If $l_i_Char < $ENCSTR_WORD_VALUE_BASE Then ExitLoop
+
+        $l_i_Val *= $ENCSTR_WORD_VALUE_RANGE
+        $l_i_Val += BitAND($l_i_Char, BitNOT($ENCSTR_WORD_BIT_MORE)) - $ENCSTR_WORD_VALUE_BASE
+        $l_i_Offset += 2
+
+        ; If continuation bit is not set, we're done
+        If BitAND($l_i_Char, $ENCSTR_WORD_BIT_MORE) = 0 Then ExitLoop
+    Next
+
+    Return $l_i_Val
+EndFunc
+
+; Decodes an encoded string to readable text using GW's internal decoder
+; This calls ValidateAsyncDecodeStr via injected ASM code
+; @param $a_p_Ptr - Pointer to the encoded string in GW memory
+; @param $a_i_Timeout - Maximum time to wait for decode (ms), default 1000
+; @return Decoded string or empty string on failure
+Func Utils_DecodeEncStringAsync($a_p_Ptr, $a_i_Timeout = 1000)
+    If $a_p_Ptr = 0 Then Return ""
+
+    ; Read the encoded string from GW memory (max 128 wchars)
+    Local $l_s_EncStr = Memory_Read($a_p_Ptr, "wchar[128]")
+    If $l_s_EncStr = "" Then Return ""
+
+    ; Write encoded string to command struct
+    DllStructSetData($g_d_DecodeEncString, 2, $l_s_EncStr)
+
+    ; Reset ready flag before sending command
+    Memory_Write($g_p_DecodeReady, 0, "dword")
+
+    ; Enqueue the decode command
+    Core_Enqueue($g_p_DecodeEncString, DllStructGetSize($g_d_DecodeEncString))
+
+    ; Wait for decode to complete
+    Local $l_i_StartTime = TimerInit()
+    While TimerDiff($l_i_StartTime) < $a_i_Timeout
+        If Memory_Read($g_p_DecodeReady, "dword") = 1 Then
+            ; Read the decoded string
+            Local $l_s_Decoded = Memory_Read($g_p_DecodeOutputPtr, "wchar[1024]")
+            Return $l_s_Decoded
+        EndIf
+        Sleep(16)
+    WEnd
+
+    ; Timeout
+    Return ""
+EndFunc
+#EndRegion EncString Decoding

@@ -398,8 +398,102 @@ Func Agent_GetAgentInfo($a_i_AgentID = -2, $a_s_Info = "")
         Case "OffhandItemId"
             Return Memory_Read($l_p_AgentPtr + 0x1C0, "short")
 
-		Case "Name"
-			Return 0 ;in progress
+        Case "Name"
+            ; Get agent type and relevant info
+            Local $l_i_Type = Memory_Read($l_p_AgentPtr + 0x9C, "long")
+            Local $l_i_AgentID = Memory_Read($l_p_AgentPtr + 0x2C, "long")
+
+            Local $l_p_NamePtr = 0
+
+            ; Living type (players and NPCs)
+            If BitAND($l_i_Type, 0xDB) <> 0 Then
+                Local $l_i_LoginNumber = Memory_Read($l_p_AgentPtr + 0x184, "dword")
+
+                If $l_i_LoginNumber <> 0 Then
+                    ; Player - get name from PlayerArray[login_number]
+                    Local $l_p_PlayerArray = World_GetWorldInfo("PlayerArray")
+                    If $l_p_PlayerArray <> 0 Then
+                        ; Player struct size = 0x4C, name at offset 0x28 (decoded name pointer)
+                        Local $l_p_PlayerEntry = $l_p_PlayerArray + ($l_i_LoginNumber * 0x4C)
+                        $l_p_NamePtr = Memory_Read($l_p_PlayerEntry + 0x28, "ptr")
+                        If $l_p_NamePtr <> 0 Then
+                            Return Memory_Read($l_p_NamePtr, "wchar[20]")
+                        EndIf
+                    EndIf
+                Else
+                    ; NPC - first try AgentInfoArray, then fallback to NPCArray
+                    Local $l_p_AgentInfoArray = World_GetWorldInfo("AgentInfoArray")
+                    Local $l_i_AgentInfoSize = World_GetWorldInfo("AgentInfoArraySize")
+
+                    If $l_p_AgentInfoArray <> 0 And $l_i_AgentID < $l_i_AgentInfoSize Then
+                        ; AgentInfo struct size = 0x38, name_enc at offset 0x34
+                        Local $l_p_AgentInfoEntry = $l_p_AgentInfoArray + ($l_i_AgentID * 0x38)
+                        $l_p_NamePtr = Memory_Read($l_p_AgentInfoEntry + 0x34, "ptr")
+                    EndIf
+
+                    ; Fallback to NPCArray if AgentInfo has no name
+                    If $l_p_NamePtr = 0 Then
+                        Local $l_i_PlayerNumber = Memory_Read($l_p_AgentPtr + 0xF4, "short")
+                        Local $l_p_NPCArray = World_GetWorldInfo("NPCArray")
+                        Local $l_i_NPCSize = World_GetWorldInfo("NPCArraySize")
+
+                        If $l_p_NPCArray <> 0 And $l_i_PlayerNumber < $l_i_NPCSize Then
+                            ; NPC struct size = 0x30, name_enc at offset 0x20
+                            Local $l_p_NPCEntry = $l_p_NPCArray + ($l_i_PlayerNumber * 0x30)
+                            $l_p_NamePtr = Memory_Read($l_p_NPCEntry + 0x20, "ptr")
+                        EndIf
+                    EndIf
+                EndIf
+
+            ; Gadget type
+            ElseIf BitAND($l_i_Type, 0x200) <> 0 Then
+                ; Get AgentContext -> agent_summary_info[agent_id].extra_info_sub->gadget_name_enc
+                Local $l_p_AgentContext = Game_GetGameInfo("AgentContext")
+                If $l_p_AgentContext <> 0 Then
+                    ; agent_summary_info array is at offset 0x98 in AgentContext, struct size = 0xC
+                    Local $l_p_SummaryArray = Memory_Read($l_p_AgentContext + 0x98, "ptr")
+                    Local $l_i_SummarySize = Memory_Read($l_p_AgentContext + 0x98 + 0x8, "long")
+
+                    If $l_p_SummaryArray <> 0 And $l_i_AgentID < $l_i_SummarySize Then
+                        ; AgentSummaryInfo struct size = 0xC, extra_info_sub at offset 0x8
+                        Local $l_p_SummaryEntry = $l_p_SummaryArray + ($l_i_AgentID * 0xC)
+                        Local $l_p_ExtraInfoSub = Memory_Read($l_p_SummaryEntry + 0x8, "ptr")
+
+                        If $l_p_ExtraInfoSub <> 0 Then
+                            ; gadget_name_enc at offset 0x10 in AgentSummaryInfoSub
+                            $l_p_NamePtr = Memory_Read($l_p_ExtraInfoSub + 0x10, "ptr")
+
+                            ; Fallback to GadgetContext if no name in summary
+                            If $l_p_NamePtr = 0 Then
+                                Local $l_i_GadgetID = Memory_Read($l_p_ExtraInfoSub + 0x8, "dword")
+                                Local $l_p_GadgetContext = Game_GetGameInfo("GadgetContext")
+
+                                If $l_p_GadgetContext <> 0 Then
+                                    ; GadgetInfo array at offset 0x0, struct size = 0x10, name_enc at offset 0xC
+                                    Local $l_p_GadgetArray = Memory_Read($l_p_GadgetContext, "ptr")
+                                    Local $l_i_GadgetSize = Memory_Read($l_p_GadgetContext + 0x8, "long")
+
+                                    If $l_p_GadgetArray <> 0 And $l_i_GadgetID < $l_i_GadgetSize Then
+                                        Local $l_p_GadgetEntry = $l_p_GadgetArray + ($l_i_GadgetID * 0x10)
+                                        $l_p_NamePtr = Memory_Read($l_p_GadgetEntry + 0xC, "ptr")
+                                    EndIf
+                                EndIf
+                            EndIf
+                        EndIf
+                    EndIf
+                EndIf
+
+            ; Item type
+            ElseIf BitAND($l_i_Type, 0x400) <> 0 Then
+                ; Get item_id from agent at offset 0xC8, then get name from Item module
+                Local $l_i_ItemID = Memory_Read($l_p_AgentPtr + 0xC8, "dword")
+                If $l_i_ItemID <> 0 Then
+                    Return Item_GetItemInfoByItemID($l_i_ItemID, "Name")
+                EndIf
+            EndIf
+
+            If $l_p_NamePtr = 0 Then Return ""
+            Return Utils_DecodeEncStringAsync($l_p_NamePtr)
 		Case Else
 			Return 0
 	EndSwitch
@@ -407,9 +501,10 @@ Func Agent_GetAgentInfo($a_i_AgentID = -2, $a_s_Info = "")
     Return 0
 EndFunc
 
-Func Agent_GetAgentEquimentInfo($a_i_AgentID = -2, $a_s_Info = "")
-	Local $l_p_AgentPtr = Agent_GetAgentInfo($a_i_AgentID, "Equipment")
+Func Agent_GetAgentEquipmentInfo($a_i_AgentID = -2, $a_s_Info = "")
+	Local $l_p_AgentPtr = Memory_Read(Agent_GetAgentInfo($a_i_AgentID, "Equipment"))
     If $l_p_AgentPtr = 0 Or $a_s_Info = "" Then Return 0
+
     Switch $a_s_Info
         Case "vtable"
             Return Memory_Read($l_p_AgentPtr, "dword")
@@ -633,7 +728,7 @@ Func Agent_GetAgentsAsObstacles($a_f_Range = 2500, $a_f_Radius = 150, $a_s_Filte
     Local $l_f_RefY = Agent_GetAgentInfo($a_i_RefAgentID, "Y")
     Local $l_f_RangeSquared = $a_f_Range * $a_f_Range
 
-    Local $l_a_AgentArray = Agent_GetAgentArray(0xDB) ; 0xDB = Living type
+    Local $l_a_AgentArray = Agent_GetAgentArray() ; 0xDB = Living type
     If Not IsArray($l_a_AgentArray) Or $l_a_AgentArray[0] = 0 Then
         Local $l_a_Empty[0][3]
         Return $l_a_Empty
@@ -647,11 +742,8 @@ Func Agent_GetAgentsAsObstacles($a_f_Range = 2500, $a_f_Radius = 150, $a_s_Filte
         Local $l_p_AgentPtr = $l_a_AgentArray[$i]
         If $l_p_AgentPtr = 0 Then ContinueLoop
 
-        ; Get agent ID for filter
-        Local $l_i_AgentID = Agent_GetAgentInfo($l_p_AgentPtr, "ID")
-
         ; Apply filter(s)
-        If $a_s_Filter <> "" And Not _ApplyFilters($l_i_AgentID, $a_s_Filter) Then ContinueLoop
+        If $a_s_Filter <> "" And Not _ApplyFilters($l_p_AgentPtr, $a_s_Filter) Then ContinueLoop
 
         ; Get position
         Local $l_f_X = Agent_GetAgentInfo($l_p_AgentPtr, "X")
@@ -864,6 +956,14 @@ Func Agent_GetNpcInfo($a_i_ModelFileID = 0, $a_s_Info = "")
 		Case "IsPet"
 			Local $flags = Memory_Read($l_p_AgentPtr + 0x10, "dword")
             Return BitAND($flags, 0xD) <> 0
+		Case "Level"
+            Return Memory_Read($l_p_AgentPtr + 0x1C, "dword")
+		Case "NameEnc"
+			Local $l_p_NamePtr = Memory_Read($l_p_AgentPtr + 0x20, "ptr")
+            Return Utils_DecodeEncString($l_p_NamePtr)
+		Case "Name"
+			Local $l_p_NamePtr = Memory_Read($l_p_AgentPtr + 0x20, "ptr")
+            Return Utils_DecodeEncStringAsync($l_p_NamePtr)
         Case Else
             Return 0
     EndSwitch
@@ -873,19 +973,19 @@ EndFunc
 
 #Region Related Player Info
 Func Agent_GetPlayerInfo($a_i_AgentID = 0, $a_s_Info = "")
-    Local $l_p_Pointer = World_GetWorldInfo("PlayerArray")
-    Local $l_i_Size = World_GetWorldInfo("PlayerArraySize")
-    Local $l_p_AgentPtr = 0
+    Local $l_p_PlayerArray = World_GetWorldInfo("PlayerArray")
+    Local $l_i_PlayerArraySize = World_GetWorldInfo("PlayerArraySize")
+    Local $l_b_FoundAgent = False
 
-    For $i = 1 To $l_i_Size - 1
-        Local $l_p_AgentEffects = $l_p_Pointer + ($i * 0x50)
-        If Memory_Read($l_p_AgentEffects, "dword") = Agent_ConvertID($a_i_AgentID) Then
-            $l_p_AgentPtr = $l_p_AgentEffects
+    For $i = 1 To $l_i_PlayerArraySize - 1
+        Local $l_p_AgentPtr = $l_p_PlayerArray + ($i * 0x50)
+        If Memory_Read($l_p_AgentPtr, "dword") = Agent_ConvertID($a_i_AgentID) Then
+            $l_b_FoundAgent = True
             ExitLoop
         EndIf
     Next
 
-    If $l_p_AgentPtr = 0 Then Return 0
+    If Not $l_b_FoundAgent Then Return 0
 
     Switch $a_s_Info
         Case "AgentID"
@@ -905,8 +1005,16 @@ Func Agent_GetPlayerInfo($a_i_AgentID = 0, $a_s_Info = "")
             Return Memory_Read($l_p_AgentPtr + 0x2C, "dword")
         Case "ActiveTitle"
             Return Memory_Read($l_p_AgentPtr + 0x30, "dword")
+
         Case "ActiveChallenge"
             Return Memory_Read($l_p_AgentPtr + 0x34, "dword")
+        Case "ActiveMelandrusAccord"
+            Return BitAND(Memory_Read($l_p_AgentPtr + 0x34, "dword"), 0x1) <> 0
+        Case "ActiveDhuumsCovenant"
+            Return BitAND(Memory_Read($l_p_AgentPtr + 0x34, "dword"), 0x2) <> 0
+        Case "ActiveReforgedMode"
+            Return BitAND(Memory_Read($l_p_AgentPtr + 0x34, "dword"), 0x4) <> 0
+
         Case "PlayerNumber"
             Return Memory_Read($l_p_AgentPtr + 0x38, "dword")
         Case "PartySize"
@@ -1075,16 +1183,24 @@ EndFunc
 #EndRegion
 
 ; Helper function to apply multiple filters separated by |
-Func _ApplyFilters($aAgentPtr, $aFilters)
-	If $aFilters = "" Then Return True
+Func _ApplyFilters($a_p_Agent, $a_s_Filters)
+	If $a_s_Filters = "" Then Return True
 
-	Local $lFilterArray = StringSplit($aFilters, "|", 2) ; 2 = no count in [0]
+	Local $l_as_Filters = StringSplit($a_s_Filters, "|", 2) ; 2 = no count in [0]
 
-	For $i = 0 To UBound($lFilterArray) - 1
-		Local $lFilterName = StringStripWS($lFilterArray[$i], 3) ; Remove leading/trailing spaces
-		If $lFilterName <> "" Then
-			Local $lResult = Call($lFilterName, $aAgentPtr)
-			If Not $lResult Then Return False
+	For $i = 0 To UBound($l_as_Filters) - 1
+		Local $l_s_FilterName = StringStripWS($l_as_Filters[$i], 3) ; Remove leading/trailing spaces
+		If $l_s_FilterName <> "" Then
+            Local $l_b_InvertFilter = False
+            If StringLeft($l_s_FilterName, 1) == "-" Then
+                $l_b_InvertFilter = True
+                $l_s_FilterName = StringTrimLeft($l_s_FilterName, 1)
+            EndIf
+
+			Local $l_b_Result = Call($l_s_FilterName, $a_p_Agent)
+
+            If $l_b_InvertFilter Then $l_b_Result = Not $l_b_Result
+            If Not $l_b_Result Then Return False
 		EndIf
 	Next
 
@@ -1163,4 +1279,59 @@ Func GetAgents($aAgentID = -2, $aRange = 1320, $aType = 0, $aReturnMode = 0, $aC
         Case 3 ; Closest Distance
             Return $lClosestDistance
     EndSwitch
+EndFunc
+
+; Version of GetAgents that uses X, Y coordinates as reference point instead of an agent
+Func GetAgentsFromXY($aX, $aY, $aRange = 1320, $aType = 0, $aReturnMode = 0, $aCustomFilter = "")
+	Local $lCount = 0
+	Local $lClosestAgent = 0
+	Local $lClosestDistance = 999999
+	Local $lFarthestAgent = 0
+	Local $lFarthestDistance = 0
+
+	Local $lAgentArray
+	If $aType > 0 Then
+		$lAgentArray = Agent_GetAgentArray($aType)
+	Else
+		$lAgentArray = Agent_GetAgentArray()
+	EndIf
+
+	If Not IsArray($lAgentArray) Or $lAgentArray[0] = 0 Then
+		Return 0
+	EndIf
+
+	For $i = 1 To $lAgentArray[0]
+		Local $lAgentPtr = $lAgentArray[$i]
+
+		Local $lAgentX = Agent_GetAgentInfo($lAgentPtr, "X")
+		Local $lAgentY = Agent_GetAgentInfo($lAgentPtr, "Y")
+		Local $lDistance = Sqrt(($lAgentX - $aX) ^ 2 + ($lAgentY - $aY) ^ 2)
+
+		If $lDistance > $aRange Then ContinueLoop
+
+		If $aCustomFilter <> "" And Not _ApplyFilters($lAgentPtr, $aCustomFilter) Then ContinueLoop
+
+		$lCount += 1
+
+		If $lDistance < $lClosestDistance Then
+			$lClosestDistance = $lDistance
+			$lClosestAgent = $lAgentPtr
+		EndIf
+
+		If $lDistance > $lFarthestDistance Then
+			$lFarthestDistance = $lDistance
+			$lFarthestAgent = $lAgentPtr
+		EndIf
+	Next
+
+	Switch $aReturnMode
+		Case 0 ; Number of agents
+			Return $lCount
+		Case 1 ; Closest Agent
+			Return $lClosestAgent
+		Case 2 ; Farthest Agent
+			Return $lFarthestAgent
+		Case 3 ; Closest Distance
+			Return $lClosestDistance
+	EndSwitch
 EndFunc

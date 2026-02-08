@@ -1790,7 +1790,7 @@ Func Map_GetExitPortalsCoords($a_i_FromMapID, $a_i_ToMapID)
 		Case $GC_I_MAP_ID_TSUMEI_VILLAGE
 			Switch $a_i_ToMapID
 				Case $GC_I_MAP_ID_PANJIANG_PENINSULA
-					Local $l_ai_Coords[2] = [-11694, -16968]
+					Local $l_ai_Coords[2] = [-11568, -17109]
 				Case $GC_I_MAP_ID_SUNQUA_VALE
 					Local $l_ai_Coords[2] = [-4645, -12829]
 			EndSwitch
@@ -2233,11 +2233,11 @@ Func Map_GetExitPortalsCoords($a_i_FromMapID, $a_i_ToMapID)
 		Case $GC_I_MAP_ID_FORUM_HIGHLANDS
 			Switch $a_i_ToMapID
 				Case $GC_I_MAP_ID_GARDEN_OF_SEBORHIN
-					Local $l_ai_Coords[2] = [-4552, 15863]
+					Local $l_ai_Coords[2] = [-4686, 16325]
 				Case $GC_I_MAP_ID_JENNURS_HORDE_OUTPOST
 					Local $l_ai_Coords[2] = [-23269, 17149]
 				Case $GC_I_MAP_ID_NIGHTFALLEN_GARDEN
-					Local $l_ai_Coords[2] = [-4552, 15863]
+					Local $l_ai_Coords[2] = [-4686, 16325]
 				Case $GC_I_MAP_ID_THE_KODASH_BAZAAR
 					Local $l_ai_Coords[2] = [22886, 16725]
 				Case $GC_I_MAP_ID_TIHARK_ORCHARD_OUTPOST
@@ -3559,9 +3559,12 @@ Func Map_GetConnectedMaps($a_i_MapID)
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_TAHNNAKAI_TEMPLE_EXPLORABLE, $GC_I_MAP_ID_SUNJIANG_DISTRICT_EXPLORABLE]
 		Case $GC_I_MAP_ID_HARVEST_TEMPLE
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_UNWAKING_WATERS_EXPLORABLE]
+
 			; === Nightfall - Istan ===
 		Case $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_HALLOWEEN, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_WINTERSDAY, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_CANTHAN_NEW_YEAR
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_CHUURHIR_FIELDS, $GC_I_MAP_ID_CONSULATE, $GC_I_MAP_ID_DAJKAH_INLET_OUTPOST, $GC_I_MAP_ID_PLAINS_OF_JARIN, $GC_I_MAP_ID_SUN_DOCKS]
+		Case $GC_I_MAP_ID_SUN_DOCKS
+			Local $l_a_Connected[] = [$GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_HALLOWEEN, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_WINTERSDAY, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN_CANTHAN_NEW_YEAR]
 		Case $GC_I_MAP_ID_PLAINS_OF_JARIN
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_CHAMPIONS_DAWN, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN, $GC_I_MAP_ID_SUNSPEAR_GREAT_HALL, $GC_I_MAP_ID_THE_ASTRALARIUM]
 		Case $GC_I_MAP_ID_CLIFFS_OF_DOHJOK
@@ -3578,6 +3581,10 @@ Func Map_GetConnectedMaps($a_i_MapID)
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_CHAHBEK_VILLAGE_OUTPOST, $GC_I_MAP_ID_KAMADAN_JEWEL_OF_ISTAN]
 		Case $GC_I_MAP_ID_CHAMPIONS_DAWN
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_CLIFFS_OF_DOHJOK, $GC_I_MAP_ID_PLAINS_OF_JARIN]
+        Case $GC_I_MAP_ID_FAHRANUR_THE_FIRST_CITY
+            Local $l_a_Connected[] = [$GC_I_MAP_ID_JOKANUR_DIGGINGS_OUTPOST, $GC_I_MAP_ID_BLACKTIDE_DEN_OUTPOST]
+        Case $GC_I_MAP_ID_MEHTANI_KEYS
+            Local $l_a_Connected[] = [$GC_I_MAP_ID_KODLONU_HAMLET]
 
 			; === Nightfall - Kourna ===
 		Case $GC_I_MAP_ID_SUNSPEAR_SANCTUARY
@@ -3679,7 +3686,7 @@ Func Map_GetConnectedMaps($a_i_MapID)
 		Case $GC_I_MAP_ID_BLACKTIDE_DEN_OUTPOST
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_CLIFFS_OF_DOHJOK, $GC_I_MAP_ID_FAHRANUR_THE_FIRST_CITY, $GC_I_MAP_ID_LAHTEDA_BOG]
 		Case $GC_I_MAP_ID_KODLONU_HAMLET
-			Local $l_a_Connected[] = [$GC_I_MAP_ID_ISSNUR_ISLES]
+			Local $l_a_Connected[] = [$GC_I_MAP_ID_ISSNUR_ISLES, $GC_I_MAP_ID_MEHTANI_KEYS]
 		Case $GC_I_MAP_ID_CONSULATE_DOCKS_OUTPOST
 			Local $l_a_Connected[] = [$GC_I_MAP_ID_CONSULATE]
 		Case $GC_I_MAP_ID_CHAHBEK_VILLAGE_OUTPOST
@@ -4085,7 +4092,7 @@ Func Map_GetPathToUnlockCity($a_i_CityID)
 	$l_a_Result[1] = $l_a_Empty
 
 	; Si déjà débloqué, retourner directement
-	If Map_IsMapUnlocked($a_i_CityID) And Map_IsValidOutpost($a_i_CityID) Then
+	If Map_IsMapUnlocked($a_i_CityID) And Map_IsOutpost($a_i_CityID) Then
 		$l_a_Result[0] = $a_i_CityID
 		Return $l_a_Result
 	EndIf

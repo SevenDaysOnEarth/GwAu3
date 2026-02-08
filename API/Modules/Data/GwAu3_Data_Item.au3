@@ -368,7 +368,7 @@ Func Item_GetStorageArray($a_b_IncludeMaterialStorage = False)
 
     Local Const $LC_I_CAP_STORAGE = 350
     Local Const $LC_I_CAP_MATSTORAGE = 360
-    
+
     Local $l_ai_BagList = [ _
         $GC_I_INVENTORY_STORAGE1, $GC_I_INVENTORY_STORAGE2, _
         $GC_I_INVENTORY_STORAGE3, $GC_I_INVENTORY_STORAGE4, _
@@ -385,7 +385,7 @@ Func Item_GetStorageArray($a_b_IncludeMaterialStorage = False)
         ReDim $l_ai_BagList[$l_i_BagListSize + 1]
         $l_ai_BagList[$l_i_BagListSize] = $GC_I_INVENTORY_MATERIAL_STORAGE
         $l_i_MaxBagSlots += $LC_I_CAP_MATSTORAGE
-    EndIf    
+    EndIf
 
     Static $s_d_Struct_Item = DllStructCreate( _
         "dword ItemID;" & _
@@ -564,19 +564,40 @@ Func Item_GetItemInfoByPtr($a_p_ItemPtr, $a_s_Info)
 
         Case "ModelID"
             Return Memory_Read($a_p_ItemPtr + 0x2C, "dword")
-        Case "InfoString"
-            Return Memory_Read($a_p_ItemPtr + 0x30, "ptr")
 
-        Case "NameEnc"
-            Return Memory_Read($a_p_ItemPtr + 0x34, "ptr")
+		Case "InfoStringEnc"
+			Local $l_p_NamePtr = Memory_Read($a_p_ItemPtr + 0x30, "ptr")
+            Return Utils_DecodeEncString($l_p_NamePtr)
+		Case "InfoStringPtr"
+			Return Memory_Read($a_p_ItemPtr + 0x30, "ptr")
+
+
+		Case "NameEnc"
+			Local $l_p_NamePtr = Memory_Read($a_p_ItemPtr + 0x34, "ptr")
+            Return Utils_DecodeEncString($l_p_NamePtr)
+		Case "Name"
+			Local $l_p_NamePtr = Memory_Read($a_p_ItemPtr + 0x34, "ptr")
+            Return Utils_DecodeEncStringAsync($l_p_NamePtr)
+
         Case "Rarity"
             Local $l_p_RarityPtr = Memory_Read($a_p_ItemPtr + 0x38, "ptr")
             Return Memory_Read($l_p_RarityPtr, 'ushort')
 
-        Case "CompleteNameEnc"
-            Return Memory_Read($a_p_ItemPtr + 0x38, "ptr")
-        Case "SingleItemName"
-            Return Memory_Read($a_p_ItemPtr + 0x3C, "ptr")
+
+		Case "CompleteNameEnc"
+			Local $l_p_NamePtr = Memory_Read($a_p_ItemPtr + 0x38, "ptr")
+            Return Utils_DecodeEncString($l_p_NamePtr)
+		Case "CompleteName"
+			Local $l_p_NamePtr = Memory_Read($a_p_ItemPtr + 0x38, "ptr")
+            Return Utils_DecodeEncStringAsync($l_p_NamePtr)
+
+		Case "SingleItemNameEnc"
+			Local $l_p_NamePtr = Memory_Read($a_p_ItemPtr + 0x3C, "ptr")
+            Return Utils_DecodeEncString($l_p_NamePtr)
+		Case "SingleItemName"
+			Local $l_p_NamePtr = Memory_Read($a_p_ItemPtr + 0x3C, "ptr")
+            Return Utils_DecodeEncStringAsync($l_p_NamePtr)
+
         Case "h0040[2]"
             Return Memory_Read($a_p_ItemPtr + 0x40, "long")
         Case "ItemFormula"
@@ -659,13 +680,15 @@ Func Item_GetMaxItems()
 EndFunc   ;==>GetMaxItems
 
 Func Item_GetItemArray()
+    Local $l_ap_ItemArray[] = [0]
     Local $l_i_MaxItems = Item_GetMaxItems()
-    If $l_i_MaxItems <= 0 Then Return
+
+    If $l_i_MaxItems <= 0 Then Return $l_ap_ItemArray
+    ReDim $l_ap_ItemArray[$l_i_MaxItems + 1]
 
     Local $l_ai_Offset[4] = [0, 0x18, 0x40, 0xB8]
     Local $l_ai_ItemStructAddress = Memory_ReadPtr($g_p_BasePointer, $l_ai_Offset, "dword")
 
-    Local $l_ap_ItemArray[$l_i_MaxItems + 1]
     Local $l_p_Ptr, $l_i_Count = 0
     Local $l_p_ItemBasePtr = $l_ai_ItemStructAddress[1]
     Local $l_d_ItemPtrBuffer = DllStructCreate("ptr[" & $l_i_MaxItems & "]")

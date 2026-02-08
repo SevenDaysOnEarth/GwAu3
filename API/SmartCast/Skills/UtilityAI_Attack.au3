@@ -62,7 +62,7 @@ Func BestTarget_PowerAttack($a_f_AggroRange)
 	; Melee Attack. If this attack hits, you strike for +10...34...40 damage.
 	; Concise description
 	; Melee Attack. Deals +10...34...40 damage.
-	Return 0
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 323 - $GC_I_SKILL_ID_DESPERATION_BLOW
@@ -167,7 +167,7 @@ Func BestTarget_CycloneAxe($a_f_AggroRange)
 	; Axe Attack. Perform a spinning axe attack striking for +4...10...12 damage to all adjacent opponents.
 	; Concise description
 	; Axe Attack. Deals +4...10...12 damage to all foes adjacent to you.
-	Return UAI_GetNearestAgent(-2, $GC_I_RANGE_ADJACENT, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 331 - $GC_I_SKILL_ID_HAMMER_BASH
@@ -677,7 +677,7 @@ Func BestTarget_DistractingShot($a_f_AggroRange)
 	; Bow Attack. If Distracting Shot hits, it interrupts target foe's action but deals only 1...13...16 damage. If the interrupted action was a skill, that skill is disabled for an additional 20 seconds.
 	; Concise description
 	; Bow Attack. Interrupts an action. Interruption effect: interrupted skill is disabled for +20 seconds. Hits for only 1...13...16 damage.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 400 - $GC_I_SKILL_ID_PRECISION_SHOT
@@ -820,7 +820,7 @@ Func BestTarget_SavageShot($a_f_AggroRange)
 	; Bow Attack. If Savage Shot hits, your target's action is interrupted. If that action was a spell, you strike for +13...25...28 damage.
 	; Concise description
 	; Bow Attack. Interrupts an action. Interruption effect: deals +13...25...28 damage if action was a spell.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 428 - $GC_I_SKILL_ID_INCENDIARY_ARROWS
@@ -958,7 +958,7 @@ Func BestTarget_DeathBlossom($a_f_AggroRange)
 	; Dual Attack. Must follow an off-hand attack. If it hits, Death Blossom strikes target foe for +20...40...45 damage and all adjacent foes take 20...40...45 damage.
 	; Concise description
 	; Dual Attack. Deals +20...40...45 damage. Also affects foes adjacent to target foe. Must follow an off-hand attack.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy|UAI_Filter_IsLastStrikeIsOffHand")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy|UAI_Filter_IsLastStrikeIsOffHand")
 EndFunc
 
 ; Skill ID: 776 - $GC_I_SKILL_ID_TWISTING_FANGS
@@ -1006,6 +1006,8 @@ EndFunc
 ; Skill ID: 779 - $GC_I_SKILL_ID_BLACK_LOTUS_STRIKE
 Func CanUse_BlackLotusStrike()
 	If Anti_Attack() Then Return False
+	Local $l_i_CurrentTarget = Agent_GetCurrentTarget()
+	If $l_i_CurrentTarget <> 0 Then Return Not UAI_Filter_IsLastStrikeLeadOrOffHand($l_i_CurrentTarget)
 	Return True
 EndFunc
 
@@ -1014,7 +1016,9 @@ Func BestTarget_BlackLotusStrike($a_f_AggroRange)
 	; Lead Attack. If it hits, Black Lotus Strike strikes for +10...27...31 damage. If target foe is suffering from a Hex, you gain 5...11...13 Energy.
 	; Concise description
 	; Lead Attack. Deals +10...27...31 damage. You gain 5...11...13 Energy if target foe is hexed.
-	Return 0
+	Local $l_i_Target = UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy|UAI_Filter_IsHexed")
+	If $l_i_Target <> 0 Then Return $l_i_Target
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 780 - $GC_I_SKILL_ID_FOX_FANGS
@@ -1028,7 +1032,7 @@ Func BestTarget_FoxFangs($a_f_AggroRange)
 	; Off-Hand Attack. Must follow a lead attack. Fox Fangs cannot be blocked and strikes for +10...30...35 damage if it hits.
 	; Concise description
 	; Off-Hand Attack. Deals +10...30...35 damage. Unblockable. Must follow a lead attack.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy|UAI_Filter_IsLastStrikeIsLead")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy|UAI_Filter_IsLastStrikeIsLead")
 EndFunc
 
 ; Skill ID: 781 - $GC_I_SKILL_ID_MOEBIUS_STRIKE
@@ -1058,7 +1062,7 @@ Func BestTarget_JaggedStrike($a_f_AggroRange)
 	; Lead Attack. If Jagged Strike hits, your target suffers from Bleeding for 5...17...20 seconds.
 	; Concise description
 	; Lead Attack. Inflicts Bleeding condition (5...17...20 seconds).
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 783 - $GC_I_SKILL_ID_UNSUSPECTING_STRIKE
@@ -1486,7 +1490,7 @@ Func BestTarget_WildStrike($a_f_AggroRange)
 	; Off-Hand Attack. Must follow a lead attack. If it hits, this attack strikes for +10...30...35 damage and any stance being used by target foe ends. This attack cannot be blocked.
 	; Concise description
 	; Off-Hand Attack. Deals +10...30...35 damage. Removes target foe's stance. Unblockable. Must follow a lead attack.
-	Return 0
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy|UAI_Filter_IsLastStrikeIsLead")
 EndFunc
 
 ; Skill ID: 1023 - $GC_I_SKILL_ID_LEAPING_MANTIS_STING
@@ -1506,6 +1510,8 @@ EndFunc
 ; Skill ID: 1024 - $GC_I_SKILL_ID_BLACK_MANTIS_THRUST
 Func CanUse_BlackMantisThrust()
 	If Anti_Attack() Then Return False
+	Local $l_i_CurrentTarget = Agent_GetCurrentTarget()
+	If $l_i_CurrentTarget <> 0 Then Return Not UAI_Filter_IsLastStrikeLeadOrOffHand($l_i_CurrentTarget)
 	Return True
 EndFunc
 
@@ -1514,7 +1520,9 @@ Func BestTarget_BlackMantisThrust($a_f_AggroRange)
 	; Lead Attack. If this attack hits, you strike for +8...18...20 damage. If target foe is suffering from a Hex, that foe is Crippled for 3...13...15 seconds.
 	; Concise description
 	; Lead Attack. Deals +8...18...20 damage. Inflicts Crippled condition (3...13...15 seconds) if target foe is hexed.
-	Return 0
+	Local $l_i_Target = UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy|UAI_Filter_IsHexed")
+	If $l_i_Target <> 0 Then Return $l_i_Target
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1025 - $GC_I_SKILL_ID_DISRUPTING_STAB
@@ -2013,7 +2021,7 @@ Func BestTarget_ReapImpurities($a_f_AggroRange)
 	; Melee Attack. If this attack hits, you deal +3...13...15 damage. Each foe you hit loses 1 condition. For each foe who loses a condition, all foes adjacent to that target foe take 10...34...40 holy damage.
 	; Concise description
 	; Melee Attack. Deals +3...13...15 damage. Struck foes lose 1 condition. Removal Effect: all foes adjacent to those struck take 10...34...40 holy damage.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1487 - $GC_I_SKILL_ID_TWIN_MOON_SWEEP
@@ -2028,7 +2036,7 @@ Func BestTarget_TwinMoonSweep($a_f_AggroRange)
 	; Melee Attack. You lose 1 Dervish enchantment and gain 10...42...50 Health. If an enchantment is lost in this way, you cannot be blocked, you strike twice, and you gain an additional 10...58...70 Health.
 	; Concise description
 	; Melee Attack. Remove 1 of your Dervish enchantments. Gain 10...42...50 Health. Removal effect: unblockable, attack twice, and gain 10...58...70 more Health.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1488 - $GC_I_SKILL_ID_VICTORIOUS_SWEEP
@@ -2042,7 +2050,7 @@ Func BestTarget_VictoriousSweep($a_f_AggroRange)
 	; Melee Attack. If this attack hits, you deal +5...21...25 damage. If target foe has less Health than you, you gain 30...70...80 Health.
 	; Concise description
 	; Melee Attack. Deals +5...21...25 damage. You gain 30...70...80 Health for each foe you hit that has less Health than you.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1489 - $GC_I_SKILL_ID_IRRESISTIBLE_SWEEP
@@ -2057,7 +2065,7 @@ Func BestTarget_IrresistibleSweep($a_f_AggroRange)
 	; Scythe Attack. Deal +3...13...15 damage and lose 1 Dervish enchantment. If you lose an enchantment in this way, Irresistible Sweep cannot be blocked, removes a stance, and deals +3...13...15 additional damage.
 	; Concise description
 	; Scythe Attack. Deals +3...13...15 damage. Remove 1 of your Dervish enchantments. Removal effect: unblockable, removes a stance, deals +3...13...15 additional damage.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1490 - $GC_I_SKILL_ID_PIOUS_ASSAULT
@@ -2072,7 +2080,7 @@ Func BestTarget_PiousAssault($a_f_AggroRange)
 	; Melee Attack. If it hits, this attack deals +10...18...20 damage and removes 1 Dervish enchantment. If a Dervish enchantment was removed, this skill recharges 75% faster and adjacent foes take 10...26...30 damage.
 	; Concise description
 	; Melee Attack. Deals +10...18...20 damage. Removes 1 of your Dervish enchantments. Removal Effect: this skill recharges 75% faster and adjacent foes take 10...26...30 damage.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1535 - $GC_I_SKILL_ID_CRIPPLING_SWEEP
@@ -2115,7 +2123,7 @@ Func BestTarget_WearyingStrike($a_f_AggroRange)
 	; Scythe Attack. You remove 1 Dervish enchantment. If an enchantment was removed, you inflict a Deep Wound for 3...9...10 seconds. You suffer from Weakness for 10 seconds if an enchantment is not removed.
 	; Concise description
 	; Scythe Attack. Remove 1 Dervish Enchantment. Removal Effect: Inflicts Deep Wound condition (3...9...10 seconds). You are Weakened (10 seconds) if an enchantment is not lost.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1538 - $GC_I_SKILL_ID_LYSSAS_ASSAULT
@@ -2139,7 +2147,7 @@ Func BestTarget_ChillingVictory($a_f_AggroRange)
 	; Scythe Attack. If it hits, this attack strikes for +3...13...15 damage. For each foe hit who has less Health than you, that foe and all adjacent foes are struck for 10...26...30 cold damage.
 	; Concise description
 	; Scythe Attack. Deals +3...13...15 damage. Deals 10...26...30 cold damage to each foe hit who has less Health than you and foes adjacent to those targets.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1546 - $GC_I_SKILL_ID_BLAZING_SPEAR
@@ -2578,7 +2586,7 @@ Func BestTarget_RendingSweep($a_f_AggroRange)
 	; Scythe Attack. You deal +5...17...20 and lose 1 Dervish enchantment. If an enchantment was lost, you remove an enchantment from each foe you hit.
 	; Concise description
 	; Scythe Attack. Deals +5...17...20 damage. You lose 1 Dervish enchantment. Removal effect: struck foes lose an enchantment.
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 1767 - $GC_I_SKILL_ID_REAPERS_SWEEP
@@ -2816,7 +2824,7 @@ Func CanUse_SlothHuntersShot()
 EndFunc
 
 Func BestTarget_SlothHuntersShot($a_f_AggroRange)
-	Return UAI_GetNearestAgent(-2, 1320, "UAI_Filter_IsLivingEnemy")
+	Return UAI_GetNearestAgent(-2, $a_f_AggroRange, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 2070 - $GC_I_SKILL_ID_AURA_SLICER
@@ -3176,26 +3184,35 @@ EndFunc
 ; Skill ID: 2239 - ;  $GC_I_SKILL_ID_UNKNOWN
 ; Skill ID: 2335 - $GC_I_SKILL_ID_BRAWLING_JAB1
 Func CanUse_BrawlingJab1()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
+	If UAI_GetDynamicSkillInfo(3, $GC_UAI_DYNAMIC_SKILL_IsRecharged) Then Return False
+	If UAI_GetDynamicSkillInfo(4, $GC_UAI_DYNAMIC_SKILL_Adrenaline) >= UAI_GetStaticSkillInfo(4, $GC_UAI_STATIC_SKILL_Adrenaline) Then Return False
+	If UAI_GetDynamicSkillInfo(5, $GC_UAI_DYNAMIC_SKILL_Adrenaline) >= UAI_GetStaticSkillInfo(5, $GC_UAI_STATIC_SKILL_Adrenaline) Then Return False
+	If UAI_GetDynamicSkillInfo(6, $GC_UAI_DYNAMIC_SKILL_Adrenaline) >= UAI_GetStaticSkillInfo(6, $GC_UAI_STATIC_SKILL_Adrenaline) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
 
 Func BestTarget_BrawlingJab1($a_f_AggroRange)
-	Return 0
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
 EndFunc
 
 ; Skill ID: 2336 - $GC_I_SKILL_ID_BRAWLING_JAB2
 Func CanUse_BrawlingJab2()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
 
 Func BestTarget_BrawlingJab2($a_f_AggroRange)
-	Return 0
-EndFunc
+	Local $l_i_TargetID = UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
+	If $l_i_TargetID <> 0 Then Return $l_i_TargetID
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy")
+EndFunc 
 
 ; Skill ID: 2337 - $GC_I_SKILL_ID_BRAWLING_STRAIGHT_RIGHT
 Func CanUse_BrawlingStraightRight()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
@@ -3205,31 +3222,42 @@ Func BestTarget_BrawlingStraightRight($a_f_AggroRange)
 	; Melee Attack. If this attack hits, it deals 25 damage and interrupts an action.
 	; Concise description
 	; Melee Attack. Deals 25 damage; interrupts an action.
-	Return 0
-EndFunc
+	Local $l_i_TargetID = UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
+	AddOns_Out("Target: " & $l_i_TargetID)
+	If $l_i_TargetID <> 0 Then Return $l_i_TargetID
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy")
+EndFunc 
+
 
 ; Skill ID: 2338 - $GC_I_SKILL_ID_BRAWLING_HOOK1
 Func CanUse_BrawlingHook1()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
 
 Func BestTarget_BrawlingHook1($a_f_AggroRange)
-	Return 0
+	Local $l_i_TargetID = UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
+	If $l_i_TargetID <> 0 Then Return $l_i_TargetID
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 2339 - $GC_I_SKILL_ID_BRAWLING_HOOK2
 Func CanUse_BrawlingHook2()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
 
 Func BestTarget_BrawlingHook2($a_f_AggroRange)
-	Return 0
+	Local $l_i_TargetID = UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
+	If $l_i_TargetID <> 0 Then Return $l_i_TargetID
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 2340 - $GC_I_SKILL_ID_BRAWLING_UPPERCUT
 Func CanUse_BrawlingUppercut()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
@@ -3239,11 +3267,14 @@ Func BestTarget_BrawlingUppercut($a_f_AggroRange)
 	; Melee Attack. You deliver an uppercut to your foe, dealing 80 damage. This attack cannot be blocked.
 	; Concise description
 	; Melee Attack. Deals 80 damage. Unblockable.
-	Return 0
+	Local $l_i_TargetID = UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
+	If $l_i_TargetID <> 0 Then Return $l_i_TargetID
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 2341 - $GC_I_SKILL_ID_BRAWLING_COMBO_PUNCH
 Func CanUse_BrawlingComboPunch()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
@@ -3253,17 +3284,22 @@ Func BestTarget_BrawlingComboPunch($a_f_AggroRange)
 	; Melee Attack. You attack twice, dealing 50 damage each time.
 	; Concise description
 	; Melee Attack. Attack twice for 50 damage each time.
-	Return 0
+	Local $l_i_TargetID = UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
+	If $l_i_TargetID <> 0 Then Return $l_i_TargetID
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 2342 - $GC_I_SKILL_ID_BRAWLING_HEADBUTT_BRAWLING_SKILL
 Func CanUse_BrawlingHeadbuttBrawlingSkill()
+	If UAI_PlayerHasEffect($GC_I_SKILL_ID_BRAWLING_BLOCK) Then Return False
 	If Anti_Attack() Then Return False
 	Return True
 EndFunc
 
 Func BestTarget_BrawlingHeadbuttBrawlingSkill($a_f_AggroRange)
-	Return 0
+	Local $l_i_TargetID = UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy|-UAI_Filter_IsBoss")
+	If $l_i_TargetID <> 0 Then Return $l_i_TargetID
+	Return UAI_GetBestSingleTarget(-2, $a_f_AggroRange, $GC_UAI_AGENT_HP, "UAI_Filter_IsLivingEnemy")
 EndFunc
 
 ; Skill ID: 2361 - $GC_I_SKILL_ID_CLUB_OF_A_THOUSAND_BEARS

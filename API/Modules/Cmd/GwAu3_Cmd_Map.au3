@@ -57,20 +57,20 @@ EndFunc   ;==>EnterChallenge
 ;~ EndFunc   ;==>EnterChallengeForeign
 
 ;~ Description: Travel to your guild hall.
-Func Map_TravelGH()
+Func Map_TravelGH($a_WaitToLoad = True)
     Local $l_ai_Offset[3] = [0, 0x18, 0x3C]
     Local $l_ap_GH = Memory_ReadPtr($g_p_BasePointer, $l_ai_Offset)
 
 	Map_InitMapIsLoaded()
     Core_SendPacket(0x18, $GC_I_HEADER_PARTY_ENTER_GUILD_HALL, Memory_Read($l_ap_GH[1] + 0x64), Memory_Read($l_ap_GH[1] + 0x68), Memory_Read($l_ap_GH[1] + 0x6C), Memory_Read($l_ap_GH[1] + 0x70), 1)
-    Map_WaitMapIsLoaded()
+    If $a_WaitToLoad Then Return Map_WaitMapIsLoaded()
 EndFunc   ;==>TravelGH
 
 ;~ Description: Leave your guild hall.
-Func Map_LeaveGH()
+Func Map_LeaveGH($a_WaitToLoad = True)
 	Map_InitMapIsLoaded()
     Core_SendPacket(0x8, $GC_I_HEADER_PARTY_LEAVE_GUILD_HALL, 1)
-    Map_WaitMapIsLoaded()
+    If $a_WaitToLoad Then Return Map_WaitMapIsLoaded()
 EndFunc   ;==>LeaveGH
 
 ;~ Description: Map travel to an outpost.
@@ -86,36 +86,46 @@ Func Map_TravelTo($a_i_MapID, $a_i_Language = Map_GetCharacterInfo("Language"), 
     If $a_WaitToLoad Then Return Map_WaitMapIsLoaded()
 EndFunc   ;==>TravelTo
 
-;~ Description: Travel to a map in a random district (different from current)
-;~ $a_i_MapID = Target map ID
-;~ $a_i_MaxRegions = Number of regions to use (7=EU only, 8=EU+Int, 11=All excluding America)
-Func Map_RndTravel($a_i_MapID)
-    ; Region/Language order: eu-en, eu-fr, eu-ge, eu-it, eu-sp, eu-po, eu-ru, us-en, int, asia-ko, asia-ch
-	Local $a_i_MaxRegions = 11
-    Local $a_i_Region[11]   = [2, 2, 2, 2, 2, 2, 2, -2, 1, 3, 4]
-    Local $a_i_Language[11] = [0, 2, 3, 4, 5, 9, 10, 0, 0, 0, 0]
+;~ Description: Travel to a map in a random district
+;~ Modes: 0 = All, 1 = EU-only, 2 = US-only, 3 = Asia-only
+Func Map_RndTravel($a_i_MapID, $a_WaitToLoad = True, $a_b_SwitchDistrict = True, $a_i_Mode = 0)
+    Local Const $LC_AI_REGIONS[] = [2, 2, 2, 2, 2, 2, 2, 0, -2, 1, 3, 4]
+    Local Const $LC_AI_LANGUAGES[] = [0, 2, 3, 4, 5, 9, 10, 0, 0, 0, 0, 0]
 
-    ; Clamp to valid range
-    If $a_i_MaxRegions < 1 Then $a_i_MaxRegions = 1
-    If $a_i_MaxRegions > 11 Then $a_i_MaxRegions = 11
+    Local $l_i_DistrictMin = 0, $l_i_DistrictMax = 11
+    Switch $a_i_Mode
+        Case 1 ; EU-only
+            $l_i_DistrictMax = 6
+        Case 2 ; US-only
+            $l_i_DistrictMin = 7
+            $l_i_DistrictMax = 8
+        Case 3 ; Asia-only
+            $l_i_DistrictMin = 9
+    EndSwitch
 
-    ; Get current region/language
+    Local $l_i_ValidDistricts = $l_i_DistrictMax - $l_i_DistrictMin + 1
+
+    Local $l_i_CurrentMap = Map_GetCharacterInfo("MapID")
     Local $l_i_CurrentRegion = Map_GetCharacterInfo("Region")
     Local $l_i_CurrentLanguage = Map_GetCharacterInfo("Language")
 
-    ; Find a different district
-    Local $l_i_Random
-    Local $l_i_Attempts = 0
-    Do
-        $l_i_Random = Random(0, $a_i_MaxRegions - 1, 1)
-        $l_i_Attempts += 1
-        ; Safety: prevent infinite loop if only 1 district available
-        If $l_i_Attempts > 50 Then ExitLoop
-    Until $a_i_Region[$l_i_Random] <> $l_i_CurrentRegion Or $a_i_Language[$l_i_Random] <> $l_i_CurrentLanguage
+    If $l_i_CurrentMap <> $a_i_MapID Or Map_GetInstanceInfo("IsExplorable") Then
+        Local $l_i_Idx = Random($l_i_DistrictMin, $l_i_DistrictMax, 1)
+    Else
+        If $a_b_SwitchDistrict Then
+            If $l_i_ValidDistricts = 1 Then Return True
+            Local $l_i_Idx = Random($l_i_DistrictMin, $l_i_DistrictMax, 1)
+            If $LC_AI_REGIONS[$l_i_Idx] = $l_i_CurrentRegion And $LC_AI_LANGUAGES[$l_i_Idx] = $l_i_CurrentLanguage Then
+                $l_i_Idx = Mod(($l_i_Idx - $l_i_DistrictMin) + 1, $l_i_ValidDistricts) + $l_i_DistrictMin
+            EndIf
+        Else
+            Return True
+        EndIf
+    EndIf
 
     Map_InitMapIsLoaded()
-    Map_MoveMap($a_i_MapID, $a_i_Region[$l_i_Random], 0, $a_i_Language[$l_i_Random])
-    Return Map_WaitMapIsLoaded()
+    Map_MoveMap($a_i_MapID, $LC_AI_REGIONS[$l_i_Idx], 0, $LC_AI_LANGUAGES[$l_i_Idx])
+    If $a_WaitToLoad Then Return Map_WaitMapIsLoaded()
 EndFunc   ;==>Map_RndTravel
 
 Func Map_WaitMapLoading($a_i_MapID = -1, $a_i_InstanceType = -1, $a_i_Timeout = 30000)
@@ -167,19 +177,24 @@ Func Map_WaitMapIsLoaded($a_i_Timeout = 30000)
     Until Map_MapIsLoaded() Or $l_b_TimedOut
     If $l_b_TimedOut Then Return False
 
-    Sleep(250)
-
-    $l_h_Timeout = TimerInit()
-    If Game_GetGameInfo("IsCinematic") Then
-        Cinematic_SkipCinematic()
-        Do
-            Sleep(50)
-            $l_b_TimedOut = (TimerDiff($l_h_Timeout) >= $a_i_Timeout)
-        Until Map_MapIsLoaded() Or $l_b_TimedOut
-        If $l_b_TimedOut Then Return False
-    EndIf
-
-    Sleep(250)
+    Sleep(500)
 
     Return True
+EndFunc
+
+Func Map_WaitMapIsLoaded_Ping($a_i_Timeout = 30000)
+    If Memory_Read($g_p_MapIsLoaded) = 1 And Other_GetPing() <> 0 Then
+        Map_InitMapIsLoaded()
+        Return True
+    EndIf
+
+    Local $l_b_TimedOut = False, $l_h_Timeout = TimerInit()
+    Do
+        Sleep(50)
+        $l_b_TimedOut = (TimerDiff($l_h_Timeout) >= $a_i_Timeout)
+    Until (Memory_Read($g_p_MapIsLoaded) = 1 And Other_GetPing() <> 0) Or $l_b_TimedOut
+    
+    Map_InitMapIsLoaded()
+
+    Return Not $l_b_TimedOut
 EndFunc
