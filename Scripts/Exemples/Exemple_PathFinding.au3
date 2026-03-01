@@ -8,7 +8,7 @@ Opt("GUICloseOnESC", False)
 Opt("ExpandVarStrings", 1)
 
 ;~ DllCall(PATH)
-$DLL_PATH = @ScriptDir & "\GWPathfinder.dll"
+$DLL_PATH = @ScriptDir & "\..\..\API\Plugins\Pathfinder\GWPathfinder.dll"
 
 #Region Declarations
 Global $g_i_ProcessID = ""
