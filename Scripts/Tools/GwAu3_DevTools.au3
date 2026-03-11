@@ -1077,7 +1077,7 @@ Func _GUI_Tab_HeaderCommands()
 
     ; === Effect ===
     If _ImGui_CollapsingHeader("Effect##h") Then
-        _ImGui_Text("Effect_DropBuff - Drop a buff by skill ID")
+        _ImGui_Text("Effect_DropBond - Drop a buff by skill ID")
         _ImGui_PushItemWidth(80)
         _ImGui_InputText("Skill##hbuff", $g_sInput_SkillID)
         _ImGui_SameLine()
@@ -1087,8 +1087,8 @@ Func _GUI_Tab_HeaderCommands()
         _ImGui_PopItemWidth()
         _ImGui_SameLine()
         If _ImGui_Button("Drop Buff##h") Then
-            Effect_DropBuff(Number($g_sInput_SkillID), Number($g_sInput_AgentID), Number($g_sInput_HeroIndex))
-            Log_Message("Effect_DropBuff(" & $g_sInput_SkillID & ", " & $g_sInput_AgentID & ", " & $g_sInput_HeroIndex & ")", $c_UTILS_Msg_Type_Info, "DevTools")
+            Effect_DropBond(Number($g_sInput_SkillID), Number($g_sInput_AgentID), Number($g_sInput_HeroIndex))
+            Log_Message("Effect_DropBond(" & $g_sInput_SkillID & ", " & $g_sInput_AgentID & ", " & $g_sInput_HeroIndex & ")", $c_UTILS_Msg_Type_Info, "DevTools")
         EndIf
 		_ImGui_Separator()
     EndIf
@@ -2133,7 +2133,7 @@ Func _GUI_Tab_DataFunctions()
 				Log_Message("h012C: " & Agent_GetAgentInfo($id, "h012C"), $c_UTILS_Msg_Type_Info, "DevTools")
 				Log_Message("HP: " & Agent_GetAgentInfo($id, "HP") & " | MaxHP: " & Agent_GetAgentInfo($id, "MaxHP") & " | CurrentHP: " & Agent_GetAgentInfo($id, "CurrentHP"), $c_UTILS_Msg_Type_Info, "DevTools")
 				; 0x138 - Effects
-				Log_Message("Effects: " & Agent_GetAgentInfo($id, "Effects") & " | EffectCount: " & Agent_GetAgentInfo($id, "EffectCount") & " | BuffCount: " & Agent_GetAgentInfo($id, "BuffCount"), $c_UTILS_Msg_Type_Info, "DevTools")
+				Log_Message("Effects: " & Agent_GetAgentInfo($id, "Effects") & " | EffectCount: " & Agent_GetAgentInfo($id, "EffectCount") & " | BondCount: " & Agent_GetAgentInfo($id, "BondCount"), $c_UTILS_Msg_Type_Info, "DevTools")
 				Log_Message("IsBleeding: " & Agent_GetAgentInfo($id, "IsBleeding") & " | IsConditioned: " & Agent_GetAgentInfo($id, "IsConditioned") & " | IsCrippled: " & Agent_GetAgentInfo($id, "IsCrippled") & " | IsDead: " & Agent_GetAgentInfo($id, "IsDead") & " | IsDeepWounded: " & Agent_GetAgentInfo($id, "IsDeepWounded") & " | IsPoisoned: " & Agent_GetAgentInfo($id, "IsPoisoned") & " | IsEnchanted: " & Agent_GetAgentInfo($id, "IsEnchanted") & " | IsDegenHexed: " & Agent_GetAgentInfo($id, "IsDegenHexed") & " | IsHexed: " & Agent_GetAgentInfo($id, "IsHexed") & " | IsWeaponSpelled: " & Agent_GetAgentInfo($id, "IsWeaponSpelled"), $c_UTILS_Msg_Type_Info, "DevTools")
 				; 0x13C - 0x154
 				Log_Message("h013C: " & Agent_GetAgentInfo($id, "h013C"), $c_UTILS_Msg_Type_Info, "DevTools")
@@ -2181,9 +2181,9 @@ Func _GUI_Tab_DataFunctions()
             Local $id = Number($g_sInput_AgentID)
             Local $skillID = Number($g_sInput_SkillID)
             Log_Message("=== Buff " & $skillID & " on Agent " & $id & " ===", $c_UTILS_Msg_Type_Info, "DevTools")
-            Log_Message("HasBuff: " & Agent_GetAgentBuffInfo($id, $skillID, "HasBuff"), $c_UTILS_Msg_Type_Info, "DevTools")
-            Log_Message("BuffID: " & Agent_GetAgentBuffInfo($id, $skillID, "BuffID"), $c_UTILS_Msg_Type_Info, "DevTools")
-            Log_Message("TargetAgentID: " & Agent_GetAgentBuffInfo($id, $skillID, "TargetAgentID"), $c_UTILS_Msg_Type_Info, "DevTools")
+            Log_Message("HasBuff: " & Agent_GetAgentBondInfo($id, $skillID, "HasBond"), $c_UTILS_Msg_Type_Info, "DevTools")
+            Log_Message("BuffID: " & Agent_GetAgentBondInfo($id, $skillID, "BondID"), $c_UTILS_Msg_Type_Info, "DevTools")
+            Log_Message("TargetAgentID: " & Agent_GetAgentBondInfo($id, $skillID, "TargetAgentID"), $c_UTILS_Msg_Type_Info, "DevTools")
         EndIf
 
 		_ImGui_NewLine()
