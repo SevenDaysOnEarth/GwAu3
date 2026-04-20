@@ -321,7 +321,7 @@ Global Const $GC_I_MAP_ID_PANJIANG_PENINSULA = 235
 Global Const $GC_I_MAP_ID_KINYA_PROVINCE = 236
 Global Const $GC_I_MAP_ID_HAIJU_LAGOON = 237
 Global Const $GC_I_MAP_ID_SUNQUA_VALE = 238
-Global Const $GC_I_MAP_ID_WAIJUN_BAZAAR = 239
+Global Const $GC_I_MAP_ID_WAJJUN_BAZAAR = 239
 Global Const $GC_I_MAP_ID_BUKDEK_BYWAY = 240
 Global Const $GC_I_MAP_ID_THE_UNDERCITY = 241
 Global Const $GC_I_MAP_ID_SHING_JEA_MONASTERY = 242
@@ -1191,7 +1191,7 @@ $g_as_MapLabels[235] = "Panjiang Peninsula"
 $g_as_MapLabels[236] = "Kinya Province"
 $g_as_MapLabels[237] = "Haiju Lagoon"
 $g_as_MapLabels[238] = "Sunqua Vale"
-$g_as_MapLabels[239] = "Waijun Bazaar"
+$g_as_MapLabels[239] = "Wajjun Bazaar"
 $g_as_MapLabels[240] = "Bukdek Byway"
 $g_as_MapLabels[241] = "The Undercity"
 $g_as_MapLabels[242] = "Shing Jea Monastery"
@@ -1994,7 +1994,7 @@ Global $g_a2D_MapArray[876][10] = [ _
 		[236, "Kinya Province", 2, "Factions", 2, "Cantha", 11, "Shing Jea Island", 2, "Explorable Zone"], _
 		[237, "Haiju Lagoon", 2, "Factions", 2, "Cantha", 11, "Shing Jea Island", 2, "Explorable Zone"], _
 		[238, "Sunqua Vale", 2, "Factions", 2, "Cantha", 11, "Shing Jea Island", 2, "Explorable Zone"], _
-		[239, "Waijun Bazaar", 2, "Factions", 2, "Cantha", 8, "Kaineng City", 2, "Explorable Zone"], _
+		[239, "Wajjun Bazaar", 2, "Factions", 2, "Cantha", 8, "Kaineng City", 2, "Explorable Zone"], _
 		[240, "Bukdek Byway", 2, "Factions", 2, "Cantha", 8, "Kaineng City", 2, "Explorable Zone"], _
 		[241, "The Undercity", 2, "Factions", 2, "Cantha", 8, "Kaineng City", 2, "Explorable Zone"], _
 		[242, "Shing Jea Monastery", 2, "Factions", 2, "Cantha", 11, "Shing Jea Island", 13, "City"], _
@@ -2628,7 +2628,7 @@ Global $g_a2D_MapArray[876][10] = [ _
 		[870, "Finding Jinnai Altrumm Ruins", 2, "Factions", 2, "Cantha", 9, "Echovald Forest", 2, "Explorable Zone"], _
 		[871, "Raidon Shing Jea Monastery Shing Jea Monastery", 2, "Factions", 2, "Cantha", 11, "Shing Jea Island", 2, "Explorable Zone"], _
 		[872, "Raidon Kaineng Center Kaineng Center", 2, "Factions", 2, "Cantha", 8, "Kaineng City", 2, "Explorable Zone"], _
-		[873, "Ministryof Oppression Wajjun Bazaar", 2, "Factions", 2, "Cantha", 8, "Kaineng City", 2, "Explorable Zone"], _
+		[873, "Ministry of Oppression Wajjun Bazaar", 2, "Factions", 2, "Cantha", 8, "Kaineng City", 2, "Explorable Zone"], _
 		[874, "The Final Confrontation", 2, "Factions", 2, "Cantha", 11, "Shing Jea Island", 2, "Explorable Zone"], _
 		[875, "Lakeside County 1070AE", 0, "Core", 0, "Kryta", 26, "SWAT", 2, "Explorable Zone"], _
 		[876, "Ashford Catacombs 1070AE", 0, "Core", 0, "Kryta", 26, "SWAT", 2, "Explorable Zone"] _
