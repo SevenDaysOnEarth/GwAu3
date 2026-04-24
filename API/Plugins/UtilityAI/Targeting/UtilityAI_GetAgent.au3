@@ -5,6 +5,27 @@
 Func UAI_ConvertAgentID($a_i_AgentID)
     Return Agent_ConvertID($a_i_AgentID)
 EndFunc
+
+Func UAI_GetObstacles($a_f_Radius = 100, $a_f_DetectionRange = 4000, $a_s_CustomFilter = "")
+    Local $l_s_Filter = $a_s_CustomFilter
+    If $l_s_Filter = "" Then $l_s_Filter = "UAI_Filter_IsLivingNPCOrGadget"
+
+    If Not UAI_UpdateAgentCache($a_f_DetectionRange, 0) Then Return 0
+
+    Local $l_a_Obstacles[0][3]
+    For $l_i_i = 1 To $g_i_AgentCacheCount
+        Local $l_i_AgentID = UAI_GetAgentInfo($l_i_i, $GC_UAI_AGENT_ID)
+        If $l_s_Filter <> "" And Not _ApplyFilters($l_i_AgentID, $l_s_Filter) Then ContinueLoop
+
+        Local $l_i_Index = UBound($l_a_Obstacles)
+        ReDim $l_a_Obstacles[$l_i_Index + 1][3]
+        $l_a_Obstacles[$l_i_Index][0] = UAI_GetAgentInfo($l_i_i, $GC_UAI_AGENT_X)
+        $l_a_Obstacles[$l_i_Index][1] = UAI_GetAgentInfo($l_i_i, $GC_UAI_AGENT_Y)
+        $l_a_Obstacles[$l_i_Index][2] = $a_f_Radius
+    Next
+
+    Return $l_a_Obstacles
+EndFunc
 #EndRegion
 
 #Region Find Agent
