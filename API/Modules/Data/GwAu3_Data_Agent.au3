@@ -899,9 +899,11 @@ Func Agent_GetAgentEffectInfo($a_i_AgentID = -2, $a_i_SkillID = 0, $a_s_Info = "
             Return Memory_Read($l_p_EffectPtr + 0x14, "dword")
 		Case "TimeElapsed"
 			Local $l_i_Timestamp = Memory_Read($l_p_EffectPtr + 0x14, "dword")
+			If $l_i_Timestamp = 0 Then Return 0 ; maintained effect: no start time
 			Return BitAND(Skill_GetSkillTimer() - $l_i_Timestamp, 0xFFFFFFFF)
 		Case "TimeRemaining"
 			Local $l_i_Timestamp = Memory_Read($l_p_EffectPtr + 0x14, "dword")
+			If $l_i_Timestamp = 0 Then Return 0x7FFFFFFF ; maintained effect: does not expire
 			Local $l_i_Duration = Memory_Read($l_p_EffectPtr + 0x10, "float")
 			Return $l_i_Duration * 1000 - BitAND(Skill_GetSkillTimer() - $l_i_Timestamp, 0xFFFFFFFF)
         Case "HasEffect"
@@ -993,8 +995,6 @@ Func Agent_GetNpcInfo($a_i_NpcIndex = 0, $a_s_Info = "")
 		Case "IsMinion"
 			Local $flags = Memory_Read($l_p_AgentPtr + 0x10, "dword")
             Return BitAND($flags, 0x100) <> 0
-		Case "Level"
-            Return Memory_Read($l_p_AgentPtr + 0x1C, "dword")
 		Case "NameEnc"
 			Local $l_p_NamePtr = Memory_Read($l_p_AgentPtr + 0x20, "ptr")
             Return Utils_DecodeEncString($l_p_NamePtr)
