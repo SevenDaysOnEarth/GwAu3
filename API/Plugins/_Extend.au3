@@ -18,6 +18,7 @@ Func Extend_AddPattern()
 
 	ChatLog_AddPattern()
 	AssertLog_AddPattern()
+	StoC_AddPattern()
 EndFunc   ;==>Extend_AddPattern
 
 ;~ Description: Resolve the shared PostMessageA import, then let every plugin resolve its own.
@@ -28,12 +29,14 @@ Func Extend_Scanner()
 
 	ChatLog_Scanner()
 	AssertLog_Scanner()
+	StoC_Scanner()
 EndFunc   ;==>Extend_Scanner
 
 ;~ Description: Let every plugin finish its setup once the ASM block is written.
 Func Extend_InitializeResult()
 	ChatLog_InitializeResult()
 	AssertLog_InitializeResult()
+	StoC_InitializeResult()
 EndFunc   ;==>Extend_InitializeResult
 
 ;~ Description: Emit the ASM procedures of every plugin.
@@ -41,10 +44,12 @@ Func Extend_Assembler()
 	Assembler_CreateChatLog()
 	Assembler_CreateAssertLog()
 	Assembler_CreateAssertLogProbe()
+	Assembler_CreateStoC()
 EndFunc   ;==>Extend_Assembler
 
 ;~ Description: Reserve the ASM data slots of every plugin.
 Func Extend_AssemblerData()
 	Assembler_CreateEventData()
 	Assembler_CreateAssertLogData()
+	Assembler_CreateStoCData()
 EndFunc   ;==>Extend_AssemblerData
